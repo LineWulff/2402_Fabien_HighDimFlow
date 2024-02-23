@@ -12,6 +12,7 @@ library(uwot)
 library(ggrastr)
 library(groupdata2)
 library(viridis)
+library(scales)
 
 #### ---- variables used throughout script ---- ####
 projdir <- getwd()
@@ -30,8 +31,47 @@ rewild_FC <- as.data.frame(flowCore::exprs(flowCore::read.FCS(
 SPF_FC$mice <- "SPF"
 rewild_FC$mice <- "re-wilded"
 
+
+# Individual samples based on timestamps - "sampleID"
+# FlowSOM variables
+n_meta <- 10 # set slightly higher than actual number as easier to combine some clusters after than having to few
+seed <- 13
+scaling <- FALSE
+
+# Compute the FlowSOM object
+fsom <- FlowSOM(input = as.matrix(SPF_FC[,c("SampleID","Time")]),
+                scale = TRUE,
+                colsToUse = c("SampleID","Time"),
+                seed = seed,
+                nClus = n_meta)
+# add to FC file
+SPF_FC$samples <- GetMetaclusters(fsom)
+# plot and check matches
+ggplot(SPF_FC,aes(x=Time,y=SampleID,colour=samples))+
+  geom_point()+
+  theme_classic()
+# collapse 5+6
+SPF_FC[SPF_FC$samples %in% c(5,6),]$samples <- 5
+
+
+# Compute the FlowSOM object
+fsom <- FlowSOM(input = as.matrix(rewild_FC[,c("SampleID","Time")]),
+                scale = TRUE,
+                colsToUse = c("SampleID","Time"),
+                seed = seed,
+                nClus = n_meta)
+# add to FC file
+rewild_FC$samples <- GetMetaclusters(fsom)
+# plot and check matches
+ggplot(rewild_FC,aes(x=Time,y=SampleID,colour=samples))+
+  geom_point()+
+  theme_classic()
+# collapse 3+5
+rewild_FC[rewild_FC$samples %in% c(3,5),]$samples <- 3
+
+# now gather FC files in one data frame 
 # check matchomg column names
-#colnames(SPF_FC) %in% colnames(rewild_FC)
+colnames(SPF_FC) %in% colnames(rewild_FC)
 
 data_FC <- rbind(SPF_FC,rewild_FC)
 
@@ -49,49 +89,30 @@ colnames(data_FC) <- str_replace(colnames(data_FC),"Alexa Fluor","AF")
 colnames(data_FC) <- str_replace(colnames(data_FC),"eFluor","EF")
 #remove empty spaces - will make life easier for you downstream, programming languages hate empty spaces
 colnames(data_FC) <- str_replace_all(colnames(data_FC)," ","")
+# for samples to be unique per sample add mice model/condition before number
+data_FC$samples <- paste(data_FC$mice, data_FC$samples, sep = "_")
 
 
+# now open csv file of panel and overwrite column name with matching marker
+panel <- read.csv(paste(projdir,"/input/FF_panel.csv",sep=""), row.names = 2)
+# check non overlaps, should not be any of the markers/channels you used
+colnames(data_FC)[!colnames(data_FC) %in% rownames(panel)]
+# exchange markers for channels
+colnames(data_FC)[colnames(data_FC) %in% rownames(panel)] <- panel[colnames(data_FC)[colnames(data_FC) %in% rownames(panel)],]
+#remove empty spaces and / - will make life easier for you downstream, programming languages hate empty spaces
+colnames(data_FC) <- str_replace_all(colnames(data_FC)," ","")
+colnames(data_FC) <- str_replace_all(colnames(data_FC),"/","-")
 
-# samples based on timestamps - "sampleID"
-# 17. Specify the FlowSOM variables
-#SOM_x <- 10
-#SOM_y <- 10
-n_meta <- 8
-seed <- 13
-scaling <- FALSE
+# check worked
+head(data_FC)
 
-# 18. Compute the FlowSOM object
-fsom <- FlowSOM(input = SPF_FC,
-                scale = TRUE,
-                colsToUse = c("SampleID","Time"),
-                seed = seed,
-                nClus = n_meta)
-
-SPF_FC$samples <- GetMetaclusters(fsom)
-
-SPF_FC <- as.data.frame(SPF_FC)
-# plot and check matches
-ggplot(SPF_FC,aes(x=Time,y=SampleID,colour=samples))+
-  geom_point()+#scale_color_manual(values=c("red","blue","cyan","magenta"))+
-  #geom_hline(yintercept=c(190000,90000))+
-  #geom_vline(xintercept = c(222000,238000))
-  theme_classic()
-
-## correct names for protein expression
-colnames(data_FC_df) <- sub("^FJComp-","",colnames(data_FC_df))
-colnames(data_FC) <- sub("^FJComp-","",colnames(data_FC))
-#correct laser channel to protein
-channel_prot <- c("GATA-3","viability","CD4","T-bet","CD90.2","TCRb","FOXP3","RORyT","Lin","CD45")
-names(channel_prot) <- colnames(data_FC_df)[5:14]
-
-for (i in seq(5,length(channel_prot)+4)){
-  colnames(data_FC_df)[i] <- channel_prot[colnames(data_FC_df)[i]]
-}
-
+#make copy of data_FC to work with
+data_FC_df <- data_FC
 
 #' select protein marker columns to use for dim. reduc.
 # markers should NOT include markers used in gating strategy 
-marker_cols <- c("FOXP3","RORyT","GATA-3","T-bet","CD4","TCRb")
+#if short list simply list all exactly as they are named in the csv file, otherwise you can exclude as below
+marker_cols <- panel$marker[!panel$marker %in% c("L-D","CD45","Tetramer")]
 
 # apply arcsinh transformation
 # (with standard scale factor of 5 for CyTOF data; alternatively 150 for flow 
@@ -103,19 +124,19 @@ summary(data_FC)
 
 #' #### ---- Running UMAP ---- ####
 # possibility of downsampling
-# downsample to equal amount of cells in each group
-groupn <- c()
-for (group in unique(data_FC_df$group)){
-  groupn[group] <- nrow(data_FC_df[data_FC_df$group==group,])}
+# downsample to equal amount of cells in each group/sample/what makes sense
 # check group with fewest observations
-groupn
+table(data_FC_df$samples)
 
-down_FC <- downsample(data_FC_df, cat_col = "group")
+down_FC <- downsample(data_FC_df, cat_col = "samples")
 
 #n_sub <- 6000
 #set.seed(1234)
 #ix <- sample(1:length(labels), n_sub)
 ix <- rownames(down_FC)
+## or choose all cells 
+#ix <- rownames(data_FC_df)
+#down_FC <- data_FC_df
 
 # prepare data for umapr (matrix format required)
 data_umap <- down_FC[ix, marker_cols]
@@ -123,7 +144,8 @@ data_umap <- as.matrix(data_umap)
 dups <- duplicated(data_umap)
 data_umap <- data_umap[!dups, ]
 
-umap_emb <- umap(data_umap)
+# run umap, takes a long time with many cells, downsample first to test
+umap_emb <- umap(data_umap) 
 
 # prepare umap embedding output data for plot
 data_plot_umap <- as.data.frame(umap_emb)
@@ -132,67 +154,57 @@ head(data_plot_umap);dim(data_plot_umap)
 
 # add group labels and merged CI label
 data_plot_umap[,"sample"] <- down_FC[ix,]$sample
-data_plot_umap[,"group"] <- down_FC[ix,]$group
-data_plot_umap$mergedCI <- down_FC$group
-data_plot_umap[startsWith(data_plot_umap$mergedCI,"CI"),]$mergedCI <- "CI"
+data_plot_umap[,"mice"] <- down_FC[ix,]$mice
 
 #### Plot each individual group as seperate contour on top of total cells
-group_col <- c("CI8"="lightslateblue","CI7-1"="darkslategray4","GF"="gray60")
-ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
-  geom_point_rast(size=0.1, colour="lightgrey")+
-  geom_density_2d(data=data_plot_umap[data_plot_umap$group=="GF",],
-                  aes(x = UMAP_1, y = UMAP_2, colour=group))+
-  scale_color_manual(values = group_col)+
-  theme_classic()+
-  xlim(c(-10,12))+ylim(c(-13,11))+
-  guides(color = guide_legend(override.aes = list(size=3)))+
-  theme(axis.text = element_blank(), axis.ticks = element_blank())
-ggsave(paste(dato,"lymphoid","UMAP_GF_Contour_sample_plot.pdf",sep="_"), height = 4, width = 4)
+ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2, colour = mice))+ 
+  geom_point_rast(size=0.1)+
+  theme_classic()
 
-ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
-  geom_point_rast(size=0.1, colour="lightgrey")+
-  geom_density_2d(data=data_plot_umap[data_plot_umap$group=="CI7-1",],
-                  aes(x = UMAP_1, y = UMAP_2, colour=group))+
-  scale_color_manual(values = group_col)+
-  theme_classic()+
-  xlim(c(-10,12))+ylim(c(-13,11))+
-  guides(color = guide_legend(override.aes = list(size=3)))+
-  theme(axis.text = element_blank(), axis.ticks = element_blank())
-ggsave(paste(dato,"lymphoid","UMAP_CI7-1_Contour_sample_plot.pdf",sep="_"), height = 4, width = 4)
+ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2, colour=mice))+ 
+  #geom_point_rast(size=0.1, colour="lightgrey")+
+  geom_density_2d()+
+  xlim(c(-13,13))+ylim(c(-15,17))+
+  theme_classic()
+ggsave(paste(projdir,"/output/",dato,"_UMAP_Contour_rewildvsSPF_plot.pdf",sep=""), height = 4, width = 4)
 
-ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
-  geom_point_rast(size=0.1, colour="lightgrey")+
-  geom_density_2d(data=data_plot_umap[data_plot_umap$group=="CI8",],
-                  aes(x = UMAP_1, y = UMAP_2, colour=group))+
-  scale_color_manual(values = group_col)+
-  theme_classic()+
-  xlim(c(-10,12))+ylim(c(-13,11))+
-  guides(color = guide_legend(override.aes = list(size=3)))+
-  theme(axis.text = element_blank(), axis.ticks = element_blank())
-ggsave(paste(dato,"lymphoid","UMAP_CI8_Contour_sample_plot.pdf",sep="_"), height = 4, width = 4)
-
-
+# rewilded only
 ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
   geom_point_rast(colour="lightgrey", size=1)+
-  geom_density_2d(data=data_plot_umap[data_plot_umap$mergedCI=="CI",],
+  geom_density_2d(data=data_plot_umap[data_plot_umap$mice=="re-wilded",],
                   aes(x = UMAP_1, y = UMAP_2),
-                  colour="skyblue3")+
+                  colour="#F8766D")+
   theme_classic()+
-  xlim(c(-10,12))+ylim(c(-13,11))+
+  xlim(c(-13,13))+ylim(c(-15,17))+
   theme(axis.text = element_blank(), axis.ticks = element_blank())
-ggsave(paste(dato,"lymphoid","UMAP_CImerged_Contour_sample_plot.pdf",sep="_"), height = 4, width = 4)
+ggsave(paste(projdir,"/output/",dato,"_UMAP_rewildedContour_plot.pdf",sep=""), height = 4, width = 4)
+
+#SPF only
+ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
+  geom_point_rast(colour="lightgrey", size=1)+
+  geom_density_2d(data=data_plot_umap[data_plot_umap$mice=="SPF",],
+                  aes(x = UMAP_1, y = UMAP_2),
+                  colour="#00BFC4")+
+  theme_classic()+
+  xlim(c(-13,13))+ylim(c(-15,17))+
+  theme(axis.text = element_blank(), axis.ticks = element_blank())
+ggsave(paste(projdir,"/output/",dato,"_UMAP_SPFContour_plot.pdf",sep=""), height = 4, width = 4)
+
+
 
 #### Colour by individual marker and save pdf versions
 for (marker in marker_cols){
   plot_mark <- ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2, colour=data_umap[,marker]))+ 
-    geom_point_rast(size=1)+
+    geom_point_rast(size=0.1)+
     scale_colour_viridis_c(option = "plasma")+
     theme_classic()+
     labs(colour=marker)+
     theme(axis.text = element_blank(), axis.ticks = element_blank())
-  pdf(paste(dato,"lymphoid","UMAP",marker,"plot.pdf", sep="_"), height = 4, width = 4)
+  if (str_detect(marker,"/")){marker <- str_replace(marker,"/","-")}
+  pdf(paste(projdir,"/output/",dato,"_UMAP_",marker,"_plot.pdf", sep=""), height = 4, width = 4)
   print(plot_mark)
   dev.off()
 }
+
 
 
