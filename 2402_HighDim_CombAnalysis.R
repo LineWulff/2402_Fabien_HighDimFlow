@@ -145,7 +145,7 @@ dups <- duplicated(data_umap)
 data_umap <- data_umap[!dups, ]
 
 # run umap, takes a long time with many cells, downsample first to test
-umap_emb <- umap(data_umap) 
+umap_emb <- umap(data_umap, scale = "maxabs") 
 
 # prepare umap embedding output data for plot
 data_plot_umap <- as.data.frame(umap_emb)
@@ -207,4 +207,46 @@ for (marker in marker_cols){
 }
 
 
+#### Now do clustering ####
+# Individual samples based on timestamps - "sampleID"
+# FlowSOM variables
+n_max <- 18 # set slightly higher than actual number as easier to combine some clusters after than having to few
+seed <- 13
+
+for (i in seq(3,n_max)){
+  n_meta <- i
+  # Compute the FlowSOM object
+  fsom <- FlowSOM(input = as.matrix(data_umap),
+                  scale = FALSE,
+                  colsToUse = marker_cols,
+                  seed = seed,
+                  nClus = n_meta)
+  # add to FC file
+  data_plot_umap[paste("cluster", i, sep = "_")] <- GetMetaclusters(fsom)
+  # plot and check matches
+  clus_plot <- ggplot(data_plot_umap,aes(x=UMAP_1,y=UMAP_2,colour = data_plot_umap[,paste("cluster", i, sep = "_")]))+
+    geom_point()+
+    labs(colour=paste("cluster", i, sep = "_"))+
+    theme_classic()+
+    theme(axis.text = element_blank(), axis.ticks = element_blank())
+  pdf(paste(projdir,"/output/",dato,"_UMAP_","cluster", i,"_plot.pdf", sep=""), height = 4, width = 4)
+  print(clus_plot)
+  dev.off()
+}
+
+# Now histograms based of each marker based on the clusters
+for (marker in marker_cols){
+  plot_mark <- ggplot(data = data_plot_umap, aes(x = data_umap[,marker], group = cluster_10, fill = cluster_10)) +
+    geom_density(adjust = 1.5)+
+    facet_wrap(~cluster_10)+
+    theme_classic()+
+    xlab(marker)+
+    theme(axis.text.y = element_blank(), axis.ticks = element_blank())
+  if (str_detect(marker,"/")){marker <- str_replace(marker,"/","-")}
+  pdf(paste(projdir,"/output/",dato,"cluster10_density_",marker,"_plot.pdf", sep=""), height = 6, width = 6)
+  print(plot_mark)
+  dev.off()
+}
+
+# see slides based on these, for ID of populations
 
