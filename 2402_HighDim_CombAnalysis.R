@@ -239,7 +239,7 @@ for (i in seq(6,n_max)){
 
 ## save clustering to rds object for later analaysis (indicate downsampled or full set for continued analysis of T cells)
 saveRDS(data_plot_umap, file = paste(dato,"CD45+clustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
-# or downsamples
+# or downsampled
 saveRDS(data_plot_umap, file = paste(dato,"CD45+clustered_SPFvsrewilded_Downsampled.rds",sep = "_"))
 
 
@@ -258,4 +258,22 @@ for (marker in marker_cols){
 }
 
 # see slides based on these, for ID of populations
+
+#### Reclustering of T cells (non-downsampled) ####
+# At resolution 8
+# cl 5 are CD4 T cells 
+# cl 6 are CD8 T cells
+AllTcells <- data_plot_umap[data_plot_umap$cluster_8 %in% c(5,6),]
+CD4Tcells <- data_plot_umap[data_plot_umap$cluster_8 %in% c(5),]
+CD8Tcells <- data_plot_umap[data_plot_umap$cluster_8 %in% c(6),]
+
+saveRDS(AllTcells, file = paste(dato,"AllTcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
+saveRDS(CD4Tcells, file = paste(dato,"CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
+saveRDS(CD8Tcells, file = paste(dato,"CD8Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
+
+nrow(AllTcells) #349249 cells, re-wilded  - 83232, SPF - 266017 
+nrow(CD4Tcells) #234376 cells, re-wilded - 54169, SPF - 180207
+nrow(CD8Tcells) #114873 cells, re-wilded - 29063, SPF - 85810
+
+
 
