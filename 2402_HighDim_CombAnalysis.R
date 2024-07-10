@@ -16,6 +16,7 @@ library(scales)
 
 #### ---- variables used throughout script ---- ####
 projdir <- getwd()
+RAID_dir <- "/Volumes/Promise RAID/Line/projects/2402_Fabien_HighDimFlow"
 dato <- str_sub(str_replace_all(Sys.Date(),"-","_"), 3, -1)
 
 #' #### ---- Read in data, inspect and transform labels if necessary ---- ####
@@ -128,7 +129,10 @@ summary(data_FC)
 # check group with fewest observations
 table(data_FC_df$samples)
 
+# downsampled for overall analysis of CD45+
 down_FC <- downsample(data_FC_df, cat_col = "samples")
+# or non downsampled for T cell analysis
+down_FC <- data_FC_df
 
 #n_sub <- 6000
 #set.seed(1234)
@@ -166,7 +170,7 @@ ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2, colour=mice))+
   geom_density_2d()+
   xlim(c(-13,13))+ylim(c(-15,17))+
   theme_classic()
-ggsave(paste(projdir,"/output/",dato,"_UMAP_Contour_rewildvsSPF_plot.pdf",sep=""), height = 4, width = 4)
+ggsave(paste(RAID_dir,"/output/",dato,"_UMAP_Contour_rewildvsSPF_plot.pdf",sep=""), height = 4, width = 4)
 
 # rewilded only
 ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
@@ -177,7 +181,7 @@ ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+
   theme_classic()+
   xlim(c(-13,13))+ylim(c(-15,17))+
   theme(axis.text = element_blank(), axis.ticks = element_blank())
-ggsave(paste(projdir,"/output/",dato,"_UMAP_rewildedContour_plot.pdf",sep=""), height = 4, width = 4)
+ggsave(paste(RAID_dir,"/output/",dato,"_UMAP_rewildedContour_plot.pdf",sep=""), height = 4, width = 4)
 
 #SPF only
 ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+ 
@@ -188,8 +192,7 @@ ggplot(data_plot_umap, aes(x = UMAP_1, y = UMAP_2))+
   theme_classic()+
   xlim(c(-13,13))+ylim(c(-15,17))+
   theme(axis.text = element_blank(), axis.ticks = element_blank())
-ggsave(paste(projdir,"/output/",dato,"_UMAP_SPFContour_plot.pdf",sep=""), height = 4, width = 4)
-
+ggsave(paste(RAID_dir,"/output/",dato,"_UMAP_SPFContour_plot.pdf",sep=""), height = 4, width = 4)
 
 
 #### Colour by individual marker and save pdf versions
@@ -201,7 +204,7 @@ for (marker in marker_cols){
     labs(colour=marker)+
     theme(axis.text = element_blank(), axis.ticks = element_blank())
   if (str_detect(marker,"/")){marker <- str_replace(marker,"/","-")}
-  pdf(paste(projdir,"/output/",dato,"_UMAP_",marker,"_plot.pdf", sep=""), height = 4, width = 4)
+  pdf(paste(RAID_dir,"/output/",dato,"_UMAP_",marker,"_plot.pdf", sep=""), height = 4, width = 4)
   print(plot_mark)
   dev.off()
 }
@@ -213,7 +216,7 @@ for (marker in marker_cols){
 n_max <- 18 # set slightly higher than actual number as easier to combine some clusters after than having to few
 seed <- 13
 
-for (i in seq(3,n_max)){
+for (i in seq(6,n_max)){
   n_meta <- i
   # Compute the FlowSOM object
   fsom <- FlowSOM(input = as.matrix(data_umap),
@@ -229,10 +232,16 @@ for (i in seq(3,n_max)){
     labs(colour=paste("cluster", i, sep = "_"))+
     theme_classic()+
     theme(axis.text = element_blank(), axis.ticks = element_blank())
-  pdf(paste(projdir,"/output/",dato,"_UMAP_","cluster", i,"_plot.pdf", sep=""), height = 4, width = 4)
+  pdf(paste(RAID_dir,"/output/",dato,"_UMAP_","cluster", i,"_plot.pdf", sep=""), height = 4, width = 4)
   print(clus_plot)
   dev.off()
 }
+
+## save clustering to rds object for later analaysis (indicate downsampled or full set for continued analysis of T cells)
+saveRDS(data_plot_umap, file = paste(dato,"CD45+clustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
+# or downsamples
+saveRDS(data_plot_umap, file = paste(dato,"CD45+clustered_SPFvsrewilded_Downsampled.rds",sep = "_"))
+
 
 # Now histograms based of each marker based on the clusters
 for (marker in marker_cols){
@@ -243,7 +252,7 @@ for (marker in marker_cols){
     xlab(marker)+
     theme(axis.text.y = element_blank(), axis.ticks = element_blank())
   if (str_detect(marker,"/")){marker <- str_replace(marker,"/","-")}
-  pdf(paste(projdir,"/output/",dato,"cluster10_density_",marker,"_plot.pdf", sep=""), height = 6, width = 6)
+  pdf(paste(RAID_dir,"/output/",dato,"cluster10_density_",marker,"_plot.pdf", sep=""), height = 6, width = 6)
   print(plot_mark)
   dev.off()
 }
