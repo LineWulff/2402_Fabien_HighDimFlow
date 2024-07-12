@@ -116,10 +116,10 @@ for (marker in marker_cols){
 #### Now do clustering ####
 # Individual samples based on timestamps - "sampleID"
 # FlowSOM variables
-n_max <- 18 # set slightly higher than actual number as easier to combine some clusters after than having to few
+n_max <- 10 # set slightly higher than actual number as easier to combine some clusters after than having to few
 seed <- 13
 
-for (i in seq(6,n_max)){
+for (i in seq(3,n_max)){
   n_meta <- i
   # Compute the FlowSOM object
   fsom <- FlowSOM(input = as.matrix(data_umap),
