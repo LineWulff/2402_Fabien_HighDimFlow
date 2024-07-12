@@ -263,9 +263,9 @@ for (marker in marker_cols){
 # At resolution 8
 # cl 5 are CD4 T cells 
 # cl 6 are CD8 T cells
-AllTcells <- data_plot_umap[data_plot_umap$cluster_8 %in% c(5,6),]
-CD4Tcells <- data_plot_umap[data_plot_umap$cluster_8 %in% c(5),]
-CD8Tcells <- data_plot_umap[data_plot_umap$cluster_8 %in% c(6),]
+AllTcells <- cbind(data_plot_umap[data_plot_umap$cluster_8 %in% c(5,6),],data_umap[data_plot_umap$cluster_8 %in% c(5,6),marker_cols])
+CD4Tcells <- cbind(data_plot_umap[data_plot_umap$cluster_8 %in% c(5),],data_umap[data_plot_umap$cluster_8 %in% c(5),marker_cols])
+CD8Tcells <- cbind(data_plot_umap[data_plot_umap$cluster_8 %in% c(6),],data_umap[data_plot_umap$cluster_8 %in% c(6),marker_cols])
 
 saveRDS(AllTcells, file = paste(dato,"AllTcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
 saveRDS(CD4Tcells, file = paste(dato,"CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
