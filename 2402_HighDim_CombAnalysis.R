@@ -228,7 +228,7 @@ for (i in seq(6,n_max)){
   data_plot_umap[paste("cluster", i, sep = "_")] <- GetMetaclusters(fsom)
   # plot and check matches
   clus_plot <- ggplot(data_plot_umap,aes(x=UMAP_1,y=UMAP_2,colour = data_plot_umap[,paste("cluster", i, sep = "_")]))+
-    geom_point()+
+    geom_point_rast()+
     labs(colour=paste("cluster", i, sep = "_"))+
     theme_classic()+
     theme(axis.text = element_blank(), axis.ticks = element_blank())
@@ -263,9 +263,9 @@ for (marker in marker_cols){
 # At resolution 8
 # cl 5 are CD4 T cells 
 # cl 6 are CD8 T cells
-AllTcells <- cbind(data_plot_umap[data_plot_umap$cluster_8 %in% c(5,6),],data_umap[data_plot_umap$cluster_8 %in% c(5,6),marker_cols])
-CD4Tcells <- cbind(data_plot_umap[data_plot_umap$cluster_8 %in% c(5),],data_umap[data_plot_umap$cluster_8 %in% c(5),marker_cols])
-CD8Tcells <- cbind(data_plot_umap[data_plot_umap$cluster_8 %in% c(6),],data_umap[data_plot_umap$cluster_8 %in% c(6),marker_cols])
+AllTcells <- cbind(data_plot_umap[data_plot_umap$cluster_10 %in% c(7,8),],data_umap[data_plot_umap$cluster_10 %in% c(7,8),marker_cols])
+CD4Tcells <- cbind(data_plot_umap[data_plot_umap$cluster_10 %in% c(7),],data_umap[data_plot_umap$cluster_10 %in% c(7),marker_cols])
+CD8Tcells <- cbind(data_plot_umap[data_plot_umap$cluster_10 %in% c(8),],data_umap[data_plot_umap$cluster_10 %in% c(8),marker_cols])
 
 saveRDS(AllTcells, file = paste(dato,"AllTcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
 saveRDS(CD4Tcells, file = paste(dato,"CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
