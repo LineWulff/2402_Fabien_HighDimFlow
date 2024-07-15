@@ -271,9 +271,9 @@ saveRDS(AllTcells, file = paste(dato,"AllTcellsreclustered_SPFvsrewilded_NONdown
 saveRDS(CD4Tcells, file = paste(dato,"CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
 saveRDS(CD8Tcells, file = paste(dato,"CD8Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds",sep = "_"))
 
-nrow(AllTcells) #349249 cells, re-wilded  - 83232, SPF - 266017 
-nrow(CD4Tcells) #234376 cells, re-wilded - 54169, SPF - 180207
-nrow(CD8Tcells) #114873 cells, re-wilded - 29063, SPF - 85810
+nrow(AllTcells) #226.520 cells, re-wilded  - 83232, SPF - 266017 
+nrow(CD4Tcells) #111.647 cells, re-wilded - 54169, SPF - 180207
+nrow(CD8Tcells) #114.873 cells, re-wilded - 29063, SPF - 85810
 
 
 
