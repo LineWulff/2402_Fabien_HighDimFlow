@@ -13,6 +13,7 @@ library(ggrastr)
 library(groupdata2)
 library(viridis)
 library(scales)
+library(tidyr)
 
 #### ---- variables used throughout script ---- ####
 projdir <- getwd()
@@ -26,13 +27,13 @@ marker_cols <- panel$marker[!panel$marker %in% c("L-D","CD45","Tetramer")]
 # cl 5 are CD4 T cells 
 # cl 6 are CD8 T cells
 
-AllTcells <- readRDS("24_07_10_AllTcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
-CD4Tcells <- readRDS("24_07_10_CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
-CD8Tcells <- readRDS("24_07_10_CD8Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
+AllTcells <- readRDS("24_07_15_AllTcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
+CD4Tcells <- readRDS("24_07_15_CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
+CD8Tcells <- readRDS("24_07_15_CD8Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
 
-nrow(AllTcells) #349249 cells, re-wilded  - 83232, SPF - 266017 
-nrow(CD4Tcells) #234376 cells, re-wilded - 54169, SPF - 180207
-nrow(CD8Tcells) #114873 cells, re-wilded - 29063, SPF - 85810
+nrow(AllTcells) #226.520 cells, re-wilded: 58966, SPF: 167554
+nrow(CD4Tcells) #111.647 cells, re-wilded: 29903, SPF: 81744 
+nrow(CD8Tcells) #114.873 cells, re-wilded: 29063, SPF: 85810 
 
 #### --- All T cells ---- ####
 #' #### ---- Running UMAP ---- ####
@@ -140,7 +141,37 @@ for (i in seq(3,n_max)){
   dev.off()
 }
 
+## Plots of distributions
+# run function from 2407_DistributionDF.R
+cl10_dist <- perc_df_calc(AllTcells, "sample", "cluster_10")
+cl10_dist$mice <- unlist(str_split(cl10_dist$sample,"_"))[seq(1,nrow(cl10_dist)*2,2)]
+# summarized table for errorbars
+cl10_dist_av <- data_summary(cl10_dist, varname="percentage", 
+             groupnames=c("mice", "cluster"))
+cl10_dist_av$cluster <- factor(cl10_dist_av$cluster, levels = 1:10)
+cl10_dist_av$mice <- factor(cl10_dist_av$mice, levels = c("SPF","re-wilded"))
+
+## Plots
+## stacked
+ggplot(cl10_dist, aes(x=sample, y=percentage, fill=cluster))+
+  geom_bar(position = "stack", stat="identity", colour="black")+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle=90))
+
+## side by side
+ggplot(cl10_dist_av, aes(x=mice, y=percentage, fill=cluster))+
+  geom_bar(position = "dodge", stat = "identity", colour = "black")+
+  geom_errorbar(aes(ymin=percentage-sd, ymax=percentage+sd), width=.2,
+                position=position_dodge(.9))+
+  facet_grid(.~cluster)+
+  theme_classic()+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+#
 saveRDS(AllTcells, file = paste(dato,"AllTcellsreclustered_SPFvsrewilded_DOWNsampled_analysed.rds",sep = "_"))
 saveRDS(AllTcells, file = paste(dato,"AllTcellsreclustered_SPFvsrewilded_NONdownsampled_analysed.rds",sep = "_"))
+
 
 
