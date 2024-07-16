@@ -31,7 +31,11 @@ AllTcells <- readRDS("24_07_15_AllTcellsreclustered_SPFvsrewilded_NONdownsampled
 #AllTcells <- readRDS("24_07_15_AllTcellsreclustered_SPFvsrewilded_NONdownsampled_analysed.rds")
 #AllTcells <- readRDS("24_07_16_AllTcellsreclustered_SPFvsrewilded_DOWNsampled_analysed.rds")
 CD4Tcells <- readRDS("24_07_15_CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
+#AllTcells <- readRDS("24_07_16_CD4Tcellsreclustered_SPFvsrewilded_NONdownsampled_analysed.rds")
+#AllTcells <- readRDS("24_07_16_CD4Tcellsreclustered_SPFvsrewilded_DOWNsampled_analysed.rds")
 CD8Tcells <- readRDS("24_07_15_CD8Tcellsreclustered_SPFvsrewilded_NONdownsampled.rds")
+#AllTcells <- readRDS("24_07_16_CD8Tcellsreclustered_SPFvsrewilded_NONdownsampled_analysed.rds")
+#AllTcells <- readRDS("24_07_16_CD8Tcellsreclustered_SPFvsrewilded_DOWNsampled_analysed.rds")
 
 nrow(AllTcells) #226.520 cells, re-wilded: 58966, SPF: 167554
 nrow(CD4Tcells) #111.647 cells, re-wilded: 29903, SPF: 81744 
